@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react'
 
-const API_KEY = 'YOUR_ANTHROPIC_API_KEY'
+const OPENROUTER_API_KEY = import.meta.env.VITE_OPENROUTER_API_KEY || ''
+const OPENROUTER_URL = 'https://openrouter.ai/api/v1/chat/completions'
 
 const SYSTEM_PROMPT = `Tu es MediBot, un assistant médical intelligent et bienveillant intégré dans l'application MediTrack.
 
@@ -63,31 +64,31 @@ export default function ChatBotPage() {
       .map(m => ({ role: m.role, content: m.content }))
 
     try {
-      const res = await fetch('https://api.anthropic.com/v1/messages', {
+      const res = await fetch(OPENROUTER_URL, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'x-api-key': API_KEY,
-          'anthropic-version': '2023-06-01',
-          'anthropic-dangerous-direct-browser-access': 'true',
+          'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
+          'HTTP-Referer': 'https://docteur-pwa.vercel.app',
+          'X-Title': 'MediTrack',
         },
         body: JSON.stringify({
-          model: 'claude-opus-4-7',
+          model: 'meta-llama/llama-3.3-70b-instruct:free',
+          messages: [
+            { role: 'system', content: SYSTEM_PROMPT },
+            ...history,
+          ],
           max_tokens: 1024,
-          system: SYSTEM_PROMPT,
-          messages: history,
         }),
       })
 
       if (!res.ok) {
         const err = await res.json().catch(() => ({}))
-        const msg = res.status === 401
-          ? '❌ Clé API invalide. Configurez votre clé Anthropic dans ChatBotPage.jsx'
-          : `⚠️ Erreur API (${res.status}): ${err.error?.message || 'Erreur inconnue'}`
+        const msg = `⚠️ Erreur API (${res.status}): ${err.error?.message || 'Erreur inconnue'}`
         setMessages(prev => [...prev, { id: Date.now(), role: 'assistant', content: msg, isError: true }])
       } else {
         const data = await res.json()
-        const reply = data.content?.[0]?.text ?? '…'
+        const reply = data.choices?.[0]?.message?.content ?? '…'
         setMessages(prev => [...prev, { id: Date.now(), role: 'assistant', content: reply, isError: false }])
       }
     } catch {

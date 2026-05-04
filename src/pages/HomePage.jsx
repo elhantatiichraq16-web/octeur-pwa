@@ -1,7 +1,7 @@
 import { useMemo } from 'react'
 import doctors from '../data/doctors.json'
 
-export default function HomePage({ onNavigate }) {
+export default function HomePage({ onNavigate, user }) {
   const top3 = useMemo(() => [...doctors].sort((a, b) => b.note - a.note).slice(0, 3), [])
 
   return (
@@ -9,7 +9,7 @@ export default function HomePage({ onNavigate }) {
       <div style={{ padding: '20px 16px 0', background: 'linear-gradient(135deg, #eff6ff 0%, #fdf2f8 100%)' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingBottom: 20 }}>
           <div>
-            <p style={{ fontSize: 13, color: 'var(--gray-400)', marginBottom: 2 }}>Bonjour 👋</p>
+            <p style={{ fontSize: 13, color: 'var(--gray-400)', marginBottom: 2 }}>Bonjour, {user?.prenom} 👋</p>
             <h1 style={{ fontSize: 24, fontWeight: 700 }}>MediTrack</h1>
             <p style={{ fontSize: 14, color: 'var(--gray-600)', marginTop: 4 }}>Comment vous sentez-vous aujourd&apos;hui ?</p>
           </div>

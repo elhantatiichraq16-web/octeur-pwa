@@ -24,6 +24,8 @@ export default defineConfig({
       },
       workbox: {
         globPatterns: ['**/*.{js,css,html,ico,png,svg,json}'],
+        runtimeCaching: [],
+        importScripts: ['/sw-notifications.js'],
       },
     }),
   ],

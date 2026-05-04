@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useUserData } from '../hooks/useUserData'
 
 const SYMPTOMES = ['Crampes', 'Maux de tête', 'Fatigue', 'Ballonnements', 'Irritabilité', 'Nausées', 'Douleurs dos', 'Sautes d\'humeur', 'Seins sensibles', 'Acné']
 const INTENSITES = ['Légère', 'Modérée', 'Abondante', 'Très abondante']
@@ -12,11 +13,27 @@ function fmt(date) {
   return new Date(date).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' })
 }
 
-export default function CyclePage() {
-  const [cycles, setCycles] = useState([])
+export default function CyclePage({ userEmail }) {
+  const [cycles, setCycles] = useUserData('cycles', [], userEmail)
   const [showAdd, setShowAdd] = useState(false)
+  const [editing, setEditing] = useState(null)
 
   const last = cycles[0]
+
+  function deleteCycle(i) {
+    if (!window.confirm('Supprimer ce cycle ?')) return
+    setCycles(prev => prev.filter((_, idx) => idx !== i))
+  }
+
+  function saveCycle(data) {
+    if (editing !== null) {
+      setCycles(prev => prev.map((c, i) => i === editing ? data : c))
+      setEditing(null)
+    } else {
+      setCycles(prev => [data, ...prev])
+      setShowAdd(false)
+    }
+  }
 
   return (
     <div>
@@ -41,9 +58,13 @@ export default function CyclePage() {
             {cycles.map((c, i) => (
               <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 0', borderBottom: i < cycles.length - 1 ? '1px solid var(--gray-100)' : 'none' }}>
                 <span style={{ color: 'var(--pink)', fontSize: 18 }}>🩸</span>
-                <div>
+                <div style={{ flex: 1 }}>
                   <p style={{ fontSize: 14, fontWeight: 600 }}>Début : {fmt(c.dateDebut)}</p>
                   <p style={{ fontSize: 12, color: 'var(--gray-400)' }}>Durée : {c.dureeFlux} j • {c.intensite} • Cycle {c.dureeCycle} j</p>
+                </div>
+                <div style={{ display: 'flex', gap: 6 }}>
+                  <button onClick={() => setEditing(i)} style={{ padding: '6px 10px', borderRadius: 8, background: 'var(--blue-light)', color: 'var(--blue)', fontWeight: 700, fontSize: 13 }}>✏️</button>
+                  <button onClick={() => deleteCycle(i)} style={{ padding: '6px 10px', borderRadius: 8, background: '#fee2e2', color: 'var(--red)', fontWeight: 700, fontSize: 13 }}>🗑</button>
                 </div>
               </div>
             ))}
@@ -51,7 +72,13 @@ export default function CyclePage() {
         )}
       </div>
 
-      {showAdd && <AddCycleSheet onClose={() => setShowAdd(false)} onSave={c => { setCycles(prev => [c, ...prev]); setShowAdd(false) }} />}
+      {(showAdd || editing !== null) && (
+        <AddCycleSheet
+          initial={editing !== null ? cycles[editing] : null}
+          onClose={() => { setShowAdd(false); setEditing(null) }}
+          onSave={saveCycle}
+        />
+      )}
     </div>
   )
 }
@@ -109,12 +136,12 @@ function EmptyState({ onAdd }) {
   )
 }
 
-function AddCycleSheet({ onClose, onSave }) {
-  const [dateDebut, setDateDebut] = useState(new Date().toISOString().split('T')[0])
-  const [dureeFlux, setDureeFlux] = useState(5)
-  const [dureeCycle, setDureeCycle] = useState(28)
-  const [intensite, setIntensile] = useState('Modérée')
-  const [selected, setSelected] = useState([])
+function AddCycleSheet({ initial, onClose, onSave }) {
+  const [dateDebut, setDateDebut] = useState(initial?.dateDebut || new Date().toISOString().split('T')[0])
+  const [dureeFlux, setDureeFlux] = useState(initial?.dureeFlux || 5)
+  const [dureeCycle, setDureeCycle] = useState(initial?.dureeCycle || 28)
+  const [intensite, setIntensile] = useState(initial?.intensite || 'Modérée')
+  const [selected, setSelected] = useState(initial?.symptomes || [])
 
   function toggleSymptome(s) {
     setSelected(prev => prev.includes(s) ? prev.filter(x => x !== s) : [...prev, s])
@@ -129,7 +156,7 @@ function AddCycleSheet({ onClose, onSave }) {
       <div className="sheet" onClick={e => e.stopPropagation()}>
         <div className="sheet-handle" />
         <div className="sheet-header">
-          <h2>Nouveau cycle</h2>
+          <h2>{initial ? 'Modifier cycle' : 'Nouveau cycle'}</h2>
           <button onClick={onClose} style={{ fontSize: 22, color: 'var(--gray-400)' }}>×</button>
         </div>
         <div style={{ padding: 20, display: 'flex', flexDirection: 'column', gap: 16 }}>
@@ -171,7 +198,7 @@ function AddCycleSheet({ onClose, onSave }) {
             </div>
           </div>
 
-          <button className="btn btn-pink btn-full" onClick={handleSave}>Enregistrer</button>
+          <button className="btn btn-pink btn-full" onClick={handleSave}>{initial ? 'Enregistrer les modifications' : 'Enregistrer'}</button>
         </div>
       </div>
     </div>
